@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Le Second Time 🍻</title>
+<style>
+  :root{
+    --bg-idle: #0f1220;
+    --bg-active: #3a0a0a;
+    --bg-active2: #7a1111;
+    --bg-rest: #08251c;
+    --bg-rest2: #0e4a36;
+    --accent: #ffb703;
+    --danger: #ff3b3b;
+    --calm: #34e0a1;
+    --text: #f5f5f7;
+    --muted: #b8b8c4;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color: transparent;}
+  html,body{
+    height:100%; margin:0; padding:0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background: var(--bg-idle);
+    color: var(--text);
+    overflow:hidden;
+    user-select:none;
+  }
+  #app{
+    height:100dvh; width:100vw;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding: 24px;
+    transition: background 0.4s ease;
+    position:relative;
+  }
+  .screen{
+    width:100%; max-width:560px;
+    display:flex; flex-direction:column; align-items:center; text-align:center;
+    gap: 18px;
+  }
+  .hidden{ display:none !important; }
+
+  h1{
+    font-size: clamp(28px, 7vw, 44px);
+    margin: 0;
+    letter-spacing: 0.5px;
+  }
+  .subtitle{ color: var(--muted); font-size: clamp(14px,3.4vw,17px); line-height:1.5; margin:0; }
+
+  .rules{
+    background: rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 18px 20px;
+    text-align:left;
+    font-size: clamp(13px, 3.2vw, 15px);
+    line-height: 1.6;
+    color: var(--muted);
+  }
+  .rules b{ color: var(--text); }
+
+  button{
+    font-family: inherit;
+    border: none;
+    border-radius: 999px;
+    cursor: pointer;
+    font-weight: 700;
+    letter-spacing: 0.3px;
+    transition: transform 0.1s ease, filter 0.15s ease;
+  }
+  button:active{ transform: scale(0.96); }
+
+  .btn-primary{
+    background: var(--accent);
+    color: #241900;
+    font-size: clamp(18px, 4.5vw, 22px);
+    padding: 16px 42px;
+    box-shadow: 0 6px 20px rgba(255,183,3,0.35);
+  }
+  .btn-secondary{
+    background: rgba(255,255,255,0.1);
+    color: var(--text);
+    font-size: 15px;
+    padding: 10px 20px;
+    border: 1px solid rgba(255,255,255,0.25);
+  }
+  .btn-ghost{
+    background: transparent;
+    color: var(--muted);
+    font-size: 13px;
+    padding: 6px 10px;
+    text-decoration: underline;
+  }
+
+  .toggle-row{
+    display:flex; align-items:center; gap:8px;
+    color: var(--muted); font-size: 14px;
+  }
+  .toggle-row input{ width:18px; height:18px; }
+
+  /* GAME SCREEN */
+  #game-screen{ gap: 10px; }
+  .top-bar{
+    display:flex; justify-content:space-between; width:100%;
+    font-size: clamp(13px, 3.2vw, 16px);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .phase-label{
+    font-size: clamp(20px, 6vw, 30px);
+    font-weight: 800;
+    margin: 4px 0 0 0;
+    letter-spacing: 1px;
+  }
+  .phase-label.active{ color: var(--muted); font-weight:600; letter-spacing: 0.5px; }
+  .phase-label.rest{ color: var(--calm); }
+  .phase-label.paused{ color: var(--muted); }
+
+  /* Full-screen "BOIS !" flash, shown only at each drink interval */
+  .drink-overlay{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap: 10px;
+    background: var(--danger);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 20;
+    transition: opacity 0.12s ease-out;
+  }
+  .drink-overlay.show{
+    opacity: 1;
+    transition: opacity 0.05s ease-in;
+  }
+  .drink-overlay-text{
+    font-size: clamp(56px, 16vw, 130px);
+    font-weight: 900;
+    color: #fff;
+    letter-spacing: 1px;
+    text-shadow: 0 4px 24px rgba(0,0,0,0.35);
+  }
+  .drink-overlay-sub{
+    font-size: clamp(30px, 8vw, 54px);
+  }
+
+  .big-timer{
+    font-size: clamp(90px, 30vw, 170px);
+    font-weight: 900;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    margin: 4px 0;
+    transition: color 0.15s ease;
+  }
+  .big-timer.active{ color: #fff; text-shadow: 0 0 30px rgba(255,59,59,0.55); }
+  .big-timer.rest{ color: #fff; text-shadow: 0 0 30px rgba(52,224,161,0.45); }
+
+  .hint{
+    font-size: clamp(13px, 3.4vw, 16px);
+    color: var(--muted);
+    min-height: 20px;
+  }
+
+  .stats-row{
+    display:flex; gap: 26px; margin-top: 6px;
+    font-size: clamp(13px, 3.2vw, 15px);
+    color: var(--muted);
+    font-variant-numeric: tabular-nums;
+  }
+  .stats-row b{ color: var(--text); font-size: 1.05em; }
+
+  .controls-row{
+    display:flex; gap: 12px; margin-top: 14px;
+    flex-wrap: wrap; justify-content: center;
+  }
+  #mute-btn{ padding: 10px 16px; font-size: 18px; }
+
+
+  /* GAME OVER */
+  .final-stats{
+    background: rgba(255,255,255,0.06);
+    border-radius: 16px;
+    padding: 22px 26px;
+    display:flex; flex-direction:column; gap: 12px;
+    width:100%;
+    font-size: clamp(15px, 3.8vw, 18px);
+  }
+  .final-stats .row{ display:flex; justify-content:space-between; }
+  .final-stats .row span:first-child{ color: var(--muted); }
+  .final-stats .row span:last-child{ font-weight:800; }
+
+  footer{
+    position:absolute; bottom: 10px; font-size: 11px; color: rgba(255,255,255,0.25);
+  }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <div class="drink-overlay" id="drink-overlay">
+    <div class="drink-overlay-text">BOIS !</div>
+    <div class="drink-overlay-sub" id="drink-overlay-sub">🍺</div>
+  </div>
+
+  <!-- IDLE / START SCREEN -->
+  <div class="screen" id="idle-screen">
+    <h1>⏱️ Le Second Time</h1>
+    <p class="subtitle">Le but : survivre le plus longtemps possible. Un seul écran, posé au milieu de la table.</p>
+    <div class="rules">
+      <b>Règles</b><br>
+      • Chaque manche dure 60 secondes. Vous buvez une gorgée à chaque signal.<br>
+      • Manche 1 : une gorgée toutes les <b>10s</b>. Puis 60s de pause complète.<br>
+      • Manche 2 : toutes les <b>9s</b>. Puis pause. Manche 3 : toutes les <b>8s</b>... et ainsi de suite, jusqu'à une gorgée par seconde.<br>
+      • Le jeu ne s'arrête jamais tout seul : appuyez sur <b>« Je craque »</b> quand vous abandonnez. Le nombre de manches tenues est votre score.
+    </div>
+    <button class="btn-primary" id="start-btn">Commencer</button>
+    <label class="toggle-row">
+      <input type="checkbox" id="sound-toggle" checked>
+      Musique de fond + son à chaque gorgée + vibration
+    </label>
+  </div>
+
+  <!-- GAME SCREEN -->
+  <div class="screen hidden" id="game-screen">
+    <div class="top-bar">
+      <span id="round-label">Manche 1</span>
+      <span id="interval-label">toutes les 10s</span>
+    </div>
+    <div class="phase-label active" id="phase-label">Manche en cours</div>
+    <div class="big-timer active" id="big-timer">10</div>
+    <div class="hint" id="hint-label">prochaine gorgée</div>
+    <div class="stats-row">
+      <div>🍺 <b id="drink-count">0</b> gorgées</div>
+      <div>⏳ <b id="total-time">00:00</b></div>
+    </div>
+    <div class="controls-row">
+      <button class="btn-secondary" id="pause-btn">⏸ Pause</button>
+      <button class="btn-secondary" id="mute-btn">🔊</button>
+      <button class="btn-secondary" id="quit-btn">🏳️ Je craque</button>
+    </div>
+  </div>
+
+  <!-- GAME OVER SCREEN -->
+  <div class="screen hidden" id="over-screen">
+    <h1>🏁 Partie terminée</h1>
+    <div class="final-stats">
+      <div class="row"><span>Manches survécues</span><span id="final-rounds">0</span></div>
+      <div class="row"><span>Rythme final atteint</span><span id="final-interval">—</span></div>
+      <div class="row"><span>Gorgées bues</span><span id="final-drinks">0</span></div>
+      <div class="row"><span>Temps total</span><span id="final-time">00:00</span></div>
+    </div>
+    <button class="btn-primary" id="replay-btn">Rejouer</button>
+  </div>
+
+  <footer>Bois de manière responsable 💛</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  const app = document.getElementById('app');
+  const drinkOverlay = document.getElementById('drink-overlay');
+  const drinkOverlaySub = document.getElementById('drink-overlay-sub');
+  const idleScreen = document.getElementById('idle-screen');
+  const gameScreen = document.getElementById('game-screen');
+  const overScreen = document.getElementById('over-screen');
+
+  const startBtn = document.getElementById('start-btn');
+  const soundToggle = document.getElementById('sound-toggle');
+  const pauseBtn = document.getElementById('pause-btn');
+  const muteBtn = document.getElementById('mute-btn');
+  const quitBtn = document.getElementById('quit-btn');
+  const replayBtn = document.getElementById('replay-btn');
+
+  const roundLabel = document.getElementById('round-label');
+  const intervalLabel = document.getElementById('interval-label');
+  const phaseLabel = document.getElementById('phase-label');
+  const bigTimer = document.getElementById('big-timer');
+  const hintLabel = document.getElementById('hint-label');
+  const drinkCountEl = document.getElementById('drink-count');
+  const totalTimeEl = document.getElementById('total-time');
+
+  const finalRounds = document.getElementById('final-rounds');
+  const finalInterval = document.getElementById('final-interval');
+  const finalDrinks = document.getElementById('final-drinks');
+  const finalTime = document.getElementById('final-time');
+
+  function computeDrinkTimes(interval){
+    const times = [];
+    let t = 0;
+    while (t <= 60){ times.push(t); t += interval; }
+    if (times[times.length-1] !== 60) times.push(60);
+    return times;
+  }
+
+  const state = {
+    status: 'idle', // idle | active | rest | manualPause | gameover
+    prevStatus: null,
+    round: 1,
+    interval: 10,
+    drinkTimes: [],
+    drinkIdx: 0,
+    phaseElapsed: 0,
+    totalElapsed: 0,
+    totalDrinks: 0,
+    roundsCompleted: 0,
+    lastFrame: null,
+    soundOn: true,
+  };
+
+  // ---------- Audio ----------
+  // Everything below is synthesized live with the Web Audio API — no
+  // external files, so no licensing questions and it works with zero
+  // network connection (handy at a party with bad wifi).
+  let audioCtx = null;
+  let masterGain = null;
+  let ambient = null; // holds the currently-playing background drone nodes
+
+  function ensureAudio(){
+    if(!audioCtx){
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      masterGain = audioCtx.createGain();
+      masterGain.gain.value = state.soundOn ? 0.55 : 0;
+      masterGain.connect(audioCtx.destination);
+    }
+    if(audioCtx.state === 'suspended') audioCtx.resume();
+  }
+
+  // Soft, continuously-playing background pad. Its brightness/volume shifts
+  // between the "active" (drinking) and "rest" (pause) phases.
+  function startAmbient(){
+    if(!audioCtx) return;
+    stopAmbient();
+    const now = audioCtx.currentTime;
+
+    const filter = audioCtx.createBiquadFilter();
+    filter.type = 'lowpass';
+    filter.frequency.value = 300;
+    filter.connect(masterGain);
+
+    const g = audioCtx.createGain();
+    g.gain.setValueAtTime(0.0001, now);
+    g.gain.exponentialRampToValueAtTime(0.05, now + 2);
+    g.connect(filter);
+
+    const osc1 = audioCtx.createOscillator();
+    osc1.type = 'sawtooth'; osc1.frequency.value = 55;
+    const osc2 = audioCtx.createOscillator();
+    osc2.type = 'sawtooth'; osc2.frequency.value = 55.4; // slight detune = movement
+    osc1.connect(g); osc2.connect(g);
+    osc1.start(now); osc2.start(now);
+
+    // slow filter sweep so the drone breathes instead of sitting static
+    const lfo = audioCtx.createOscillator();
+    lfo.frequency.value = 0.12;
+    const lfoGain = audioCtx.createGain();
+    lfoGain.gain.value = 140;
+    lfo.connect(lfoGain).connect(filter.frequency);
+    lfo.start(now);
+
+    ambient = { osc1, osc2, lfo, g, filter };
+  }
+
+  function stopAmbient(){
+    if(!ambient || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    try{
+      ambient.g.gain.cancelScheduledValues(now);
+      ambient.g.gain.setValueAtTime(ambient.g.gain.value, now);
+      ambient.g.gain.exponentialRampToValueAtTime(0.0001, now + 0.5);
+      ambient.osc1.stop(now + 0.6);
+      ambient.osc2.stop(now + 0.6);
+      ambient.lfo.stop(now + 0.6);
+    }catch(e){ /* ignore */ }
+    ambient = null;
+  }
+
+  // 'active' = brighter/louder (drinking phase), 'rest' = darker/quieter (pause)
+  function setAmbientMood(mood){
+    if(!ambient || !audioCtx) return;
+    const now = audioCtx.currentTime;
+    ambient.filter.frequency.cancelScheduledValues(now);
+    ambient.g.gain.cancelScheduledValues(now);
+    if(mood === 'rest'){
+      ambient.filter.frequency.linearRampToValueAtTime(180, now + 1.5);
+      ambient.g.gain.linearRampToValueAtTime(0.03, now + 1.5);
+    } else {
+      ambient.filter.frequency.linearRampToValueAtTime(480, now + 1);
+      ambient.g.gain.linearRampToValueAtTime(0.06, now + 1);
+    }
+  }
+
+  // The "beat" that lands exactly on each gorgée: a synthesized kick +
+  // noise clap + bell, so the background music audibly "tape" on cue.
+  function playDrinkHit(){
+    if(!audioCtx) return;
+    const now = audioCtx.currentTime;
+
+    const kickOsc = audioCtx.createOscillator();
+    const kickGain = audioCtx.createGain();
+    kickOsc.type = 'sine';
+    kickOsc.frequency.setValueAtTime(150, now);
+    kickOsc.frequency.exponentialRampToValueAtTime(45, now + 0.15);
+    kickGain.gain.setValueAtTime(0.0001, now);
+    kickGain.gain.exponentialRampToValueAtTime(0.6, now + 0.01);
+    kickGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.28);
+    kickOsc.connect(kickGain).connect(masterGain);
+    kickOsc.start(now); kickOsc.stop(now + 0.3);
+
+    const bufferSize = Math.floor(audioCtx.sampleRate * 0.2);
+    const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+    const data = buffer.getChannelData(0);
+    for(let i = 0; i < bufferSize; i++){
+      data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / bufferSize, 2);
+    }
+    const noise = audioCtx.createBufferSource();
+    noise.buffer = buffer;
+    const noiseFilter = audioCtx.createBiquadFilter();
+    noiseFilter.type = 'highpass'; noiseFilter.frequency.value = 1200;
+    const noiseGain = audioCtx.createGain();
+    noiseGain.gain.setValueAtTime(0.0001, now);
+    noiseGain.gain.exponentialRampToValueAtTime(0.35, now + 0.005);
+    noiseGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.15);
+    noise.connect(noiseFilter).connect(noiseGain).connect(masterGain);
+    noise.start(now); noise.stop(now + 0.2);
+
+    const bell = audioCtx.createOscillator();
+    const bellGain = audioCtx.createGain();
+    bell.type = 'triangle'; bell.frequency.value = 880;
+    bellGain.gain.setValueAtTime(0.0001, now);
+    bellGain.gain.exponentialRampToValueAtTime(0.18, now + 0.02);
+    bellGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.4);
+    bell.connect(bellGain).connect(masterGain);
+    bell.start(now); bell.stop(now + 0.42);
+  }
+
+  function vibrate(){
+    if(!state.soundOn) return;
+    if(navigator.vibrate) navigator.vibrate(120);
+  }
+
+  function setMuted(muted){
+    state.soundOn = !muted;
+    muteBtn.textContent = muted ? '🔇' : '🔊';
+    if(masterGain && audioCtx){
+      const now = audioCtx.currentTime;
+      masterGain.gain.cancelScheduledValues(now);
+      masterGain.gain.linearRampToValueAtTime(muted ? 0 : 0.55, now + 0.15);
+    }
+  }
+
+  function fmtTime(sec){
+    sec = Math.max(0, Math.floor(sec));
+    const m = Math.floor(sec/60).toString().padStart(2,'0');
+    const s = (sec%60).toString().padStart(2,'0');
+    return m+':'+s;
+  }
+
+  function showScreen(name){
+    idleScreen.classList.toggle('hidden', name!=='idle');
+    gameScreen.classList.toggle('hidden', name!=='game');
+    overScreen.classList.toggle('hidden', name!=='over');
+  }
+
+  let overlayTimeout = null;
+  function triggerDrink(){
+    state.totalDrinks++;
+    playDrinkHit();
+    vibrate();
+
+    // Show the full-screen "BOIS !" flash only for this instant, scaled to
+    // stay short even when the interval drops to 1 second per round.
+    const flashMs = Math.max(220, Math.min(650, state.interval * 1000 * 0.55));
+    drinkOverlaySub.textContent = '🍺 gorgée #' + state.totalDrinks;
+    if(overlayTimeout) clearTimeout(overlayTimeout);
+    drinkOverlay.classList.add('show');
+    overlayTimeout = setTimeout(()=>{
+      drinkOverlay.classList.remove('show');
+    }, flashMs);
+  }
+
+  function startGame(){
+    state.status = 'active';
+    state.round = 1;
+    state.interval = 10;
+    state.drinkTimes = computeDrinkTimes(10);
+    state.drinkIdx = 0;
+    state.phaseElapsed = 0;
+    state.totalElapsed = 0;
+    state.totalDrinks = 0;
+    state.roundsCompleted = 0;
+    state.lastFrame = null;
+    state.soundOn = soundToggle.checked;
+    muteBtn.textContent = state.soundOn ? '🔊' : '🔇';
+    ensureAudio();
+    startAmbient();
+    setAmbientMood('active');
+    showScreen('game');
+    app.style.background = 'var(--bg-active)';
+    requestAnimationFrame(tick);
+  }
+
+  function endGame(){
+    state.status = 'gameover';
+    stopAmbient();
+    if(overlayTimeout) clearTimeout(overlayTimeout);
+    drinkOverlay.classList.remove('show');
+    finalRounds.textContent = state.roundsCompleted;
+    finalInterval.textContent = (state.roundsCompleted>0 || state.phaseElapsed>0)
+      ? ('1 gorgée / ' + state.interval + 's')
+      : '—';
+    finalDrinks.textContent = state.totalDrinks;
+    finalTime.textContent = fmtTime(state.totalElapsed);
+    app.style.background = 'var(--bg-idle)';
+    showScreen('over');
+  }
+
+  function render(){
+    roundLabel.textContent = 'Manche ' + state.round;
+    intervalLabel.textContent = 'toutes les ' + state.interval + 's';
+    drinkCountEl.textContent = state.totalDrinks;
+    totalTimeEl.textContent = fmtTime(state.totalElapsed);
+
+    if(state.status === 'active'){
+      const next = state.drinkTimes[state.drinkIdx] !== undefined ? state.drinkTimes[state.drinkIdx] : 60;
+      const left = Math.max(0, Math.ceil(next - state.phaseElapsed));
+      bigTimer.textContent = left;
+      bigTimer.className = 'big-timer active';
+      phaseLabel.textContent = 'Manche en cours';
+      phaseLabel.className = 'phase-label active';
+      hintLabel.textContent = 'prochaine gorgée dans ' + left + 's';
+      app.style.background = 'var(--bg-active)';
+      pauseBtn.disabled = false;
+    } else if(state.status === 'rest'){
+      const left = Math.max(0, Math.ceil(60 - state.phaseElapsed));
+      bigTimer.textContent = left;
+      bigTimer.className = 'big-timer rest';
+      phaseLabel.textContent = 'PAUSE — repos';
+      phaseLabel.className = 'phase-label rest';
+      hintLabel.textContent = 'la manche suivante commence dans ' + left + 's';
+      app.style.background = 'var(--bg-rest)';
+      pauseBtn.disabled = false;
+    } else if(state.status === 'manualPause'){
+      phaseLabel.textContent = '⏸ En pause';
+      phaseLabel.className = 'phase-label paused';
+      hintLabel.textContent = 'appuyez sur reprendre quand vous êtes prêts';
+    }
+  }
+
+  function tick(now){
+    if(state.lastFrame === null) state.lastFrame = now;
+    const dt = (now - state.lastFrame) / 1000;
+    state.lastFrame = now;
+
+    if(state.status === 'active' || state.status === 'rest'){
+      state.phaseElapsed += dt;
+      state.totalElapsed += dt;
+
+      if(state.status === 'active'){
+        while(state.drinkIdx < state.drinkTimes.length && state.phaseElapsed >= state.drinkTimes[state.drinkIdx]){
+          triggerDrink();
+          state.drinkIdx++;
+        }
+        if(state.phaseElapsed >= 60){
+          state.roundsCompleted++;
+          state.status = 'rest';
+          state.phaseElapsed -= 60;
+          setAmbientMood('rest');
+        }
+      } else {
+        if(state.phaseElapsed >= 60){
+          state.round++;
+          state.interval = Math.max(11 - state.round, 1);
+          state.drinkTimes = computeDrinkTimes(state.interval);
+          state.drinkIdx = 0;
+          state.status = 'active';
+          state.phaseElapsed -= 60;
+          setAmbientMood('active');
+        }
+      }
+      render();
+    }
+
+    if(state.status !== 'gameover'){
+      requestAnimationFrame(tick);
+    }
+  }
+
+  // ---------- Controls ----------
+  startBtn.addEventListener('click', startGame);
+
+  pauseBtn.addEventListener('click', ()=>{
+    if(state.status === 'manualPause'){
+      state.status = state.prevStatus;
+      state.lastFrame = null;
+      pauseBtn.textContent = '⏸ Pause';
+      requestAnimationFrame(tick);
+    } else if(state.status === 'active' || state.status === 'rest'){
+      state.prevStatus = state.status;
+      state.status = 'manualPause';
+      pauseBtn.textContent = '▶ Reprendre';
+      render();
+    }
+  });
+
+  muteBtn.addEventListener('click', ()=>{
+    setMuted(state.soundOn); // soundOn currently true -> mute, and vice versa
+  });
+
+  quitBtn.addEventListener('click', endGame);
+  replayBtn.addEventListener('click', ()=>{
+    pauseBtn.textContent = '⏸ Pause';
+    showScreen('idle');
+  });
+
+  render();
+})();
+</script>
+</body>
+</html>
